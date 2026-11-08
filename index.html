@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Простой Генератор Звуков из HTML</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #1e1e24;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        textarea {
+            width: 80%;
+            height: 200px;
+            background: #2f3542;
+            color: #7bed9f;
+            border: 2px solid #ff4757;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+        }
+        button {
+            margin-top: 15px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        button:hover { background: #ff6b81; }
+        .info { margin-top: 20px; color: #a4b0be; }
+    </style>
+</head>
+<body>
+
+    <h1>Генератор звуков из HTML-кода</h1>
+    <p>Вставь код ниже, и каждый тег издаст свой прикольный звук!</p>
+    
+    <textarea id="htmlInput"><div class="player-card">
+    <h1>PUBG Mobile: TDM</h1>
+    <p>Синие: 10 | Красные: 8</p>
+    <button id="fire">FIRE</button>
+    <span class="badge">Kills: 5</span>
+</div></textarea>
+
+    <button onclick="generateSoundsFromHTML()">Озвучить код! 🎵</button>
+    <div class="info" id="status">Нажми кнопку для запуска</div>
+
+    <script>
+        let audioCtx = null;
+
+        function playFunnySound(tagLength, isShort, hasClass, hasId) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            // Выбор волны по свойствам тега
+            if (hasId) osc.type = 'sawtooth'; 
+            else if (hasClass) osc.type = 'triangle'; 
+            else osc.type = Math.random() > 0.5 ? 'sine' : 'square'; 
+
+            const now = audioCtx.currentTime;
+            let baseFreq = 150 + (tagLength * 35);
+            if (baseFreq > 1200) baseFreq = 600; 
+
+            osc.frequency.setValueAtTime(baseFreq, now);
+
+            // Эффекты
+            if (isShort) {
+                // Звук лазера
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 4, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else {
+                // Звук робота / монетки
+                osc.frequency.setValueAtTime(baseFreq, now);
+                osc.frequency.setValueAtTime(baseFreq * 1.5, now + 0.08);
+                osc.frequency.setValueAtTime(baseFreq * 1.2, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        function generateSoundsFromHTML() {
+            const htmlText = document.getElementById('htmlInput').value;
+            const statusDiv = document.getElementById('status');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            const allElements = doc.body.getElementsByTagName('*');
+
+            if (allElements.length === 0) {
+                statusDiv.innerText = "Теги не найдены!";
+                return;
+            }
+
+            Array.from(allElements).forEach((el, index) => {
+                setTimeout(() => {
+                    const tagName = el.tagName.toLowerCase();
+                    const isShortTag = ['button', 'span', 'img', 'h1', 'a'].includes(tagName);
+                    playFunnySound(tagName.length, isShortTag, el.className.length > 0, el.id.length > 0);
+                    statusDiv.innerText = `Играет: <${tagName}> (${index + 1}/${allElements.length})`;
+                }, index * 250);
+            });
+        }
+    </script>
+</body>
+</html>
